@@ -299,6 +299,10 @@ class Player(object):
 
                 strout = strout_new
 
+                str_list = strout.split()
+                if str_list[0] == "@F" and float(str_list[-1]) < 0.5:
+                    strout = "@P 0"
+
             # Update application status according to mpg123 output
             if strout[:2] == "@F":
                 # playing, update progress
