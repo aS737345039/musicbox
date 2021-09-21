@@ -536,11 +536,10 @@ class NetEase(object):
             return lyric.split("\n")
 
     # 今日最热（0）, 本周最热（10），历史最热（20），最新节目（30）
-    def djchannels(self, offset=0, limit=50):
+    def djRadios(self, offset=0, limit=50):
         path = "/weapi/djradio/hot/v1"
         params = dict(limit=limit, offset=offset)
-        channels = self.request("POST", path, params).get("djRadios", [])
-        return channels
+        return self.request("POST", path, params).get("djRadios", [])
 
     def djprograms(self, radio_id, asc=False, offset=0, limit=50):
         path = "/weapi/dj/program/byradio"
@@ -575,14 +574,7 @@ class NetEase(object):
             # 导致日志记录大量can't get song url的可能原因
             urls = []
             for i in range(0, len(sids), 350):
-                for count in range(3):
-                    urls_group = self.songs_url(sids[i : i + 350])
-                    if urls_group:
-                        urls.extend(urls_group)
-                        break
-                else:
-                    log.error("self.songs_url return [], check network connection")
-                    return []
+                urls.extend(self.songs_url(sids[i : i + 350]))
             # songs_detail api会返回空的电台歌名，故使用原数据
             sds = []
             if dig_type == "djprograms":
@@ -603,7 +595,7 @@ class NetEase(object):
                 url_index = url_id_index.get(s["id"])
                 if url_index is None:
                     log.error("can't get song url, id: %s", s["id"])
-                    continue
+                    return []
                 s["url"] = urls[url_index]["url"]
                 s["br"] = urls[url_index]["br"]
                 s["expires"] = urls[url_index]["expi"]
@@ -611,7 +603,9 @@ class NetEase(object):
             return Parse.songs(sds)
 
         elif dig_type == "refresh_urls":
-            urls_info = self.songs_url(data)
+            urls_info = []
+            for i in range(0, len(data), 350):
+                urls_info.extend(self.songs_url(data[i : i + 350]))
             timestamp = time.time()
 
             songs = []
@@ -638,5 +632,8 @@ class NetEase(object):
 
         elif dig_type == "playlist_class_detail":
             return PLAYLIST_CLASSES[data]
+
+        elif dig_type == "djRadios":
+            return data
         else:
             raise ValueError("Invalid dig type")
